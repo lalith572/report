@@ -1,42 +1,115 @@
+// import { useEffect, useState } from "react";
+// import DataTable from "datatables.net-react";
+// import DT from "datatables.net-dt";
+// import api from "../api/api";
+// import TableModal from "./TableModal";
+
+// DataTable.use(DT);
+
+// export default function TableView({ table }) {
+//   const [data, setData] = useState([]);
+//   const [columns, setColumns] = useState([]);
+
+//   useEffect(() => {
+//     if (!table) return;
+
+//     api.get(`/${table}`)
+//       .then(res => {
+//         const rows = res.data;
+
+//         if (!Array.isArray(rows)) {
+//           console.error("API response is not an array");
+//           return;
+//         }
+
+//         if (rows.length > 0) {
+//           const cols = Object.keys(rows[0]).map(key => ({
+//             title: key,
+//             data: key,
+//           }));
+//           setColumns(cols);
+//         } else {
+//           setColumns([]);
+//         }
+
+//         setData(rows);
+//       })
+//       .catch(err => console.error(err));
+//   }, [table]);
+
+//   return (
+//     <div className="card mt-4">
+//       <div className="card-header">
+//         <strong className="text-capitalize">{table} Table</strong>
+//       </div>
+
+//       <div className="card-body">
+//         {data.length === 0 ? (
+//           <p>No records found</p>
+//         ) : (
+//           <DataTable
+//             key={table}
+//             data={data}
+//             columns={columns}
+//             className="display"
+//             options={{
+//               pageLength: 10,
+//               searching: true,
+//               ordering: true,
+//               destroy: true,
+//               columnDefs: [
+//                 { className: "text-center", targets: "_all" }
+//               ]
+//             }}
+//           />
+
+//         )}
+//       </div>
+
+//       <TableModal
+//         table={table}
+//         data={data}
+//         onSaved={() =>
+//           api.get(`/${table}`).then(res => setData(res.data))
+//         }
+//         columns={columns.map(c => c.data)}   
+//       />
+//     </div>
+//   );
+// }
 import { useEffect, useState } from "react";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-dt";
 import api from "../api/api";
 import TableModal from "./TableModal";
 
+DataTable.use(DT);
+
 export default function TableView({ table }) {
-  const [rows, setRows] = useState([]);
+  const [data, setData] = useState([]);
+  const [columns, setColumns] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
 
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-
-  const pageSize = 5;
-
-  const loadData = () => {
-    api.get(`/${table}`)
-      .then(res => {
-        setRows(res.data);
-        setPage(1); // reset page on table change
-      })
-      .catch(console.error);
-  };
-
   useEffect(() => {
-    loadData();
+    if (!table) return;
+
+    api.get(`/${table}`).then(res => {
+      const rows = res.data;
+
+      if (rows.length > 0) {
+        setColumns(
+          Object.keys(rows[0]).map(key => ({
+            title: key,
+            data: key,
+          }))
+        );
+      } else {
+        setColumns([]);
+      }
+
+      setData(rows);
+    });
   }, [table]);
-
-  // 🔍 SEARCH
-  const filteredRows = rows.filter(row =>
-    JSON.stringify(row)
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
-  // 📄 PAGINATION
-  const totalPages = Math.ceil(filteredRows.length / pageSize);
-  const paginatedRows = filteredRows.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
 
   return (
     <div className="card mt-4">
@@ -45,93 +118,48 @@ export default function TableView({ table }) {
 
         <button
           className="btn btn-success btn-sm"
+          onClick={() => setSelectedRow(null)}
           data-bs-toggle="modal"
           data-bs-target="#tableModal"
-          onClick={() => setSelectedRow(null)}
         >
           + Add
         </button>
       </div>
 
       <div className="card-body">
-
-        {/* 🔍 SEARCH BAR */}
-       <form
-          className="d-flex mb-3"
-          onSubmit={e => {
-            e.preventDefault();
-            setPage(1);
+        <DataTable
+          key={table}
+          data={data}
+          columns={columns}
+          className="display"
+          options={{
+            pageLength: 10,
+            searching: true,
+            ordering: true,
+            destroy: true,
+            columnDefs: [{ className: "text-center", targets: "_all" }]
           }}
-        >
-          <input
-            className="form-control me-2"
-            placeholder="Search..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-
-          <button className="btn btn-primary" type="submit">
-            Search
-          </button>
-        </form>
-        
-        {/* 📊 TABLE */}
-        {!paginatedRows.length ? (
-          <p>No records found</p>
-        ) : (
-          <table className="table table-bordered table-hover">
-            <thead>
-              <tr>
-                {Object.keys(paginatedRows[0]).map(col => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedRows.map(row => (
-                <tr
-                  key={row.id}
-                  data-bs-toggle="modal"
-                  data-bs-target="#tableModal"
-                  onClick={() => setSelectedRow(row)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {Object.values(row).map((val, i) => (
-                    <td key={i}>{val}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {/* 📄 PAGINATION */}
-        {totalPages > 1 && (
-          <nav>
-            <ul className="pagination">
-              {[...Array(totalPages)].map((_, i) => (
-                <li
-                  key={i}
-                  className={`page-item ${page === i + 1 ? "active" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
+          onRowClick={(row) => {
+            setSelectedRow(row);
+            document.getElementById("openModalBtn").click();
+          }}
+        />
       </div>
 
-      {/* ➕ ADD / ✏️ EDIT MODAL */}
+      <button
+        id="openModalBtn"
+        data-bs-toggle="modal"
+        data-bs-target="#tableModal"
+        style={{ display: "none" }}
+      />
+
       <TableModal
         table={table}
         data={selectedRow}
-        onSaved={loadData}
+        columns={columns.map(c => c.data)}
+        onSaved={() =>
+          api.get(`/${table}`).then(res => setData(res.data))
+        }
       />
     </div>
   );
