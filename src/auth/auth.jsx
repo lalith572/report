@@ -1,11 +1,11 @@
 export const login = (icno, password, role) => {
   // dummy users
-  if (icno === "admin" && password === "admin" && role === "admin") {
+  if (icno === "admin" && password === "admin" ) {
     localStorage.setItem("user", JSON.stringify({ role }));
     return true;
   }
 
-  if (icno === "user" && password === "user" && role === "user") {
+  if (icno === "user" && password === "user") {
     localStorage.setItem("user", JSON.stringify({ role }));
     return true;
   }

@@ -1,151 +1,190 @@
 // import { useEffect, useState } from "react";
 // import DataTable from "datatables.net-react";
-// import DT from "datatables.net-dt";
+// import DT from "datatables.net-bs5";
 // import api from "../api/api";
 // import TableModal from "./TableModal";
 
 // DataTable.use(DT);
 
-// export default function TableView({ table }) {
-//   const [data, setData] = useState([]);
+// export default function TableView({ table, refreshCounts }) {
+//   const [rows, setRows] = useState([]);
 //   const [columns, setColumns] = useState([]);
+//   const [editRow, setEditRow] = useState(null);
 
-//   useEffect(() => {
+//   const loadTable = async () => {
 //     if (!table) return;
 
-//     api.get(`/${table}`)
-//       .then(res => {
-//         const rows = res.data;
+//     setRows([]);
+//     setColumns([]);
 
-//         if (!Array.isArray(rows)) {
-//           console.error("API response is not an array");
-//           return;
-//         }
+//     const res = await api.get(`/${table}`);
+//     const data = Array.isArray(res.data) ? res.data : [];
 
-//         if (rows.length > 0) {
-//           const cols = Object.keys(rows[0]).map(key => ({
-//             title: key,
-//             data: key,
-//           }));
-//           setColumns(cols);
-//         } else {
-//           setColumns([]);
-//         }
+//     setRows(data);
 
-//         setData(rows);
-//       })
-//       .catch(err => console.error(err));
+//     if (data.length > 0) {
+//       setColumns(
+//         Object.keys(data[0]).map(key => ({
+//           title: key,
+//           data: key,
+//         }))
+//       );
+//     }
+//   };
+
+//   useEffect(() => {
+//     loadTable();
 //   }, [table]);
+
+//   const tableKey =
+//     table + "-" + columns.map(c => c.data).join("-");
 
 //   return (
 //     <div className="card mt-4">
-//       <div className="card-header">
+//       {/* HEADER */}
+//       <div className="card-header d-flex justify-content-between align-items-center">
 //         <strong className="text-capitalize">{table} Table</strong>
+
+//         <button
+//           className="btn btn-sm btn-success"
+//           data-bs-toggle="modal"
+//           data-bs-target="#tableModal"
+//           onClick={() => setEditRow(null)}
+//         >
+//           Add
+//         </button>
 //       </div>
 
+//       {/* BODY */}
 //       <div className="card-body">
-//         {data.length === 0 ? (
-//           <p>No records found</p>
-//         ) : (
+//         {columns.length > 0 ? (
 //           <DataTable
-//             key={table}
-//             data={data}
+//             key={tableKey}
+//             data={rows}
 //             columns={columns}
-//             className="display"
+//             className="table table-bordered table-striped"
 //             options={{
 //               pageLength: 10,
 //               searching: true,
 //               ordering: true,
-//               destroy: true,
-//               columnDefs: [
-//                 { className: "text-center", targets: "_all" }
-//               ]
+//               language: {
+//                 emptyTable: "No data available in table",
+//               },
+
+//               rowCallback: (row, rowData) => {
+//                 row.style.cursor = "pointer";
+//                 row.onclick = () => setEditRow(rowData);
+//               },
 //             }}
 //           />
-
+//         ) : (
+//           <div className="text-muted">No data available</div>
 //         )}
 //       </div>
 
+//       {/* MODAL */}
 //       <TableModal
 //         table={table}
-//         data={data}
-//         onSaved={() =>
-//           api.get(`/${table}`).then(res => setData(res.data))
-//         }
-//         columns={columns.map(c => c.data)}   
+//         data={editRow}
+//         columns={columns.map(c => c.data)}
+//         onSaved={() => {
+//           loadTable();
+//           refreshCounts?.();
+//           setEditRow(null);
+//         }}
 //       />
 //     </div>
 //   );
 // }
+
 import { useEffect, useState } from "react";
 import DataTable from "datatables.net-react";
-import DT from "datatables.net-dt";
+import DT from "datatables.net-bs5";
 import api from "../api/api";
 import TableModal from "./TableModal";
 
 DataTable.use(DT);
 
-export default function TableView({ table }) {
-  const [data, setData] = useState([]);
+export default function TableView({ table, refreshCounts }) {
+  const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [selectedRow, setSelectedRow] = useState(null);
+  const [editRow, setEditRow] = useState(null);
 
-  useEffect(() => {
+  const loadTable = async () => {
     if (!table) return;
 
-    api.get(`/${table}`).then(res => {
-      const rows = res.data;
+    const res = await api.get(`/${table}`);
+    const data = Array.isArray(res.data) ? res.data : [];
 
-      if (rows.length > 0) {
-        setColumns(
-          Object.keys(rows[0]).map(key => ({
-            title: key,
-            data: key,
-          }))
-        );
-      } else {
-        setColumns([]);
-      }
+    setRows(data);
 
-      setData(rows);
-    });
+    if (data.length > 0) {
+      setColumns(
+        Object.keys(data[0]).map(key => ({
+          title: key,
+          data: key,
+        }))
+      );
+    } else {
+      setColumns([]);
+    }
+  };
+
+  useEffect(() => {
+    loadTable();
   }, [table]);
+
+  const tableKey =
+    table + "-" + columns.map(c => c.data).join("-");
 
   return (
     <div className="card mt-4">
+      {/* HEADER */}
       <div className="card-header d-flex justify-content-between align-items-center">
         <strong className="text-capitalize">{table} Table</strong>
 
+        {/* ADD */}
         <button
-          className="btn btn-success btn-sm"
-          onClick={() => setSelectedRow(null)}
-          data-bs-toggle="modal"
-          data-bs-target="#tableModal"
+          className="btn btn-sm btn-success"
+          onClick={() => {
+            setEditRow({});
+            document.getElementById("openModalBtn").click();
+          }}
         >
-          + Add
+          Add
         </button>
       </div>
 
+      {/* BODY */}
       <div className="card-body">
-        <DataTable
-          key={table}
-          data={data}
-          columns={columns}
-          className="display"
-          options={{
-            pageLength: 10,
-            searching: true,
-            ordering: true,
-            destroy: true,
-            columnDefs: [{ className: "text-center", targets: "_all" }]
-          }}
-          onRowClick={(row) => {
-            setSelectedRow(row);
-            document.getElementById("openModalBtn").click();
-          }}
-        />
+        {columns.length > 0 ? (
+          <DataTable
+            key={tableKey}
+            data={rows}
+            columns={columns}
+            className="table table-bordered table-striped"
+            options={{
+              pageLength: 10,
+              searching: true,
+              ordering: true,
+              language: {
+                emptyTable: "No data available in table",
+              },
+              rowCallback: (row, rowData) => {
+                row.style.cursor = "pointer";
+                row.onclick = () => {
+                  setEditRow(rowData);
+                  document.getElementById("openModalBtn").click();
+                };
+              },
+            }}
+          />
+        ) : (
+          <div className="text-muted">No data available</div>
+        )}
       </div>
 
+      {/* 🔹 HIDDEN MODAL TRIGGER (Bootstrap controls modal) */}
       <button
         id="openModalBtn"
         data-bs-toggle="modal"
@@ -153,13 +192,16 @@ export default function TableView({ table }) {
         style={{ display: "none" }}
       />
 
+      {/* MODAL */}
       <TableModal
         table={table}
-        data={selectedRow}
+        data={editRow}
         columns={columns.map(c => c.data)}
-        onSaved={() =>
-          api.get(`/${table}`).then(res => setData(res.data))
-        }
+        onSaved={() => {
+          loadTable();
+          refreshCounts?.();
+          setEditRow(null);
+        }}
       />
     </div>
   );
