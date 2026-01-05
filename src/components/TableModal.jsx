@@ -5,7 +5,6 @@ export default function TableModal({ table, data, columns, onSaved }) {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Build form dynamically
   useEffect(() => {
     if (!columns || columns.length === 0) {
       setForm({});
@@ -44,15 +43,14 @@ export default function TableModal({ table, data, columns, onSaved }) {
 
       onSaved();
 
-      // close modal ONLY on success
       const modalEl = document.getElementById("tableModal");
-      const modal = window.bootstrap.Modal.getInstance(modalEl);
+      const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.hide();
 
     } catch (err) {
       console.error(err);
       alert(
-        "❌ Failed to save data.\n\n" +
+        "Failed to save data.\n\n" +
         (err.response?.data?.message || err.message)
       );
     } finally {
@@ -65,7 +63,6 @@ export default function TableModal({ table, data, columns, onSaved }) {
       <div className="modal-dialog modal-dialog-centered modal-lg">
         <div className="modal-content">
 
-          {/* 🔹 HEADER with X button */}
           <div className="modal-header">
             <h5 className="modal-title text-capitalize">
               {form.id ? "Edit" : "Add"} {table}
@@ -77,7 +74,6 @@ export default function TableModal({ table, data, columns, onSaved }) {
             />
           </div>
 
-          {/* 🔹 BODY */}
           <div className="modal-body">
             {Object.entries(form)
               .filter(([k]) => k !== "id")
@@ -98,7 +94,6 @@ export default function TableModal({ table, data, columns, onSaved }) {
               ))}
           </div>
 
-          {/* 🔹 FOOTER with Close & Save */}
           <div className="modal-footer">
             <button
               className="btn btn-secondary"
